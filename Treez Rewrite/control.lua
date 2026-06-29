@@ -1,0 +1,7 @@
+require("control.compat")
+require("control.species")
+require("control.seed")
+require("control.queue")
+require("control.seeder")
+require("control.sweep")
+require("control.commands")

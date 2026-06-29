@@ -1,0 +1,1 @@
+-- Tree Growth research chain (Tree Growth trigger + Sapling Growth levels 1-6).

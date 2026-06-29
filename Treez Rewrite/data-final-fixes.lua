@@ -1,0 +1,2 @@
+-- Generates hidden growth-stage prototypes per tree species.
+-- Stub until tree-seed item and species list exist.

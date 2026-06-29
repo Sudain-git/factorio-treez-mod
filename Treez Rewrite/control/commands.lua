@@ -1,0 +1,1 @@
+-- /treez diagnostic command and /treez reset.
