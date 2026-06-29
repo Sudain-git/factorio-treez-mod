@@ -1,0 +1,19 @@
+{
+  "name": "treez-base-game",
+  "version": "1.16.40",
+  "title": "Treez (Base Game)",
+  "author": "Sudain",
+  "contact": "",
+  "homepage": "https://mods.factorio.com/mod/treez-base-game",
+  "description": "Adds robot-based tree planting and terrain restoration tools. Plant tree seeds by hand or use the Tree Seeder area tool to queue robot planting across a region. Place Nitrate Pellets on degraded ground to incrementally restore soil quality, active at night. Research Sapling Soil Enrichment to have growing trees passively improve the ground beneath them. With Dynamic Rain: Cloud Seeding scatters seeds in rain-cleaned chunks; Restorative Rains drops nitrate pellets during storms; Enduring Nitrates gives pellets a chance to survive firing and re-queue. Compatible with Alien Biomes, TerrainEvolution2, Space Exploration, and Winter Is Coming.",
+  "dependencies": [
+    "base >= 2.0.0",
+    "? space-age",
+    "? TerrainEvolution2",
+    "? alien-biomes",
+    "? space-exploration",
+    "? dynamic-rain",
+    "? winter-is-coming"
+  ],
+  "factorio_version": "2.0"
+}

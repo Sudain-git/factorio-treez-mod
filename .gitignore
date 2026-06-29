@@ -1,0 +1,6 @@
+# Compiled/packaged mod files
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db

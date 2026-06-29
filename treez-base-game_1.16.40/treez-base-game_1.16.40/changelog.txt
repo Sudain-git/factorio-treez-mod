@@ -1,0 +1,509 @@
+---------------------------------------------------------------------------------------------------
+Version: 1.16.40
+Date: 2026-06-28
+  Bugfixes:
+    - Foreign-tree ghost sweep: fixed overlap detection failing for large entities such
+      as rails. Previously both ghosts and trees were keyed only by their center tile
+      position, so a rail ghost whose center was on a different tile than a blocking tree
+      was never matched. Both ghosts and trees are now checked against every tile their
+      bounding_box covers, so a tree anywhere under a rail footprint is correctly found
+      and marked for deconstruction.
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+Version: 1.16.39
+Date: 2026-06-28
+  Debugging:
+    - Foreign-tree ghost sweep now prints console messages to all connected players each
+      cycle: confirms the sweep is running, reports ghost count, prints a clickable GPS
+      link for every tree marked for deconstruction (including its entity name and
+      surface), and prints a summary on completion. Remove these messages once the
+      issue is confirmed resolved.
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+Version: 1.16.38
+Date: 2026-06-28
+  Changes:
+    - Entity name soil-crystal-site renamed from "Nitrate Pellets" to "Area Nitrate Pellets".
+    - Entity name soil-crystal-colored-site renamed from "Nitrate Pellets (Colored)" to "Catalyst Nitrate Pellets".
+    - Item name and recipe name soil-crystal renamed from "Nitrate Pellets" to "Wide Nitrate Pellets".
+    - Updated entity, item, recipe, technology, and mod setting descriptions across all nitrate pellet strings.
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+Version: 1.16.37
+Date: 2026-06-28
+  Balancing:
+    - Nitrate Pellet (white) crafting time reduced from 45 seconds to 2 seconds.
+    - Local Nitrate Pellet (black) crafting time reduced from 2 seconds to 0.5 seconds.
+  Changes:
+    - Renamed "Primitive Nitrates" / "Primitive Nitrate Pellets" to "Local Nitrates" /
+      "Local Nitrate Pellets" across all player-facing strings: entity names, item names,
+      recipe names, technology name, and all descriptions. The internal technology key
+      (treez-primitive-nitrates) is unchanged to preserve save compatibility.
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+Version: 1.16.36
+Date: 2026-06-28
+  Features:
+    - Foreign-tree ghost sweep (added in 1.16.35) is now controlled by the
+      "Remove trees blocking ghosts" map setting (treez-foreign-tree-sweep, default on).
+      Disable it if another mod manages tree removal and conflicts arise.
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+Version: 1.16.35
+Date: 2026-06-28
+  Features:
+    - Added foreign-tree ghost sweep (run_foreign_tree_ghost_sweep). Once per day/night
+      cycle, scans all entity ghosts on each surface and marks for deconstruction any
+      full-grown tree or plant whose tile overlaps a ghost, so robots are no longer
+      blocked indefinitely by trees placed by other mods. Treez's own growing stages
+      are excluded from the sweep.
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+Version: 1.16.34
+Date: 2026-06-28
+  Performance:
+    - Nitrate tile upgrade: tile_rank() now does a single O(1) table lookup instead of
+      rebuilding the full vanilla+AB rank table on every call. The old code allocated a
+      new table and walked the VANILLA_UPGRADE chain on each invocation; at batch size 5
+      with radius 8 this meant ~1000+ redundant chain walks per process_crystals tick.
+      The TILE_RANK_CACHE is built once at startup and refreshed when build_ab_tile_tables
+      runs (on_init / on_configuration_changed). AB ranks are now computed correctly via
+      a multi-pass iterative algorithm instead of a single unordered pairs() sweep.
+    - Nitrate tile upgrade: smart_upgrade_tile now fetches all tiles in the search area
+      with a single surface.find_tiles_filtered call instead of one surface.get_tile call
+      per candidate tile and per neighbour check. At radius 8 this reduces engine round
+      trips from ~200+ per pellet to 1, eliminating the main source of per-tick stutter.
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+Version: 1.16.33
+Date: 2026-06-26
+  Changes:
+    - Locale: treez-arboreal-aromatics technology name corrected from "Atmospheric Arbory"
+      to "Atmospheric Arboriculture".
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+Version: 1.16.32
+Date: 2026-06-26
+  Changes:
+    - Locale: treez-enduring-nitrates technology description now notes that the mechanic
+      does not apply to primitive (black) pellets, in addition to colored pellets.
+    - Locale: soil-crystal-site entity description updated to reflect that the pellet
+      restores nearby terrain rather than the tile directly beneath it.
+    - Locale: soil-crystal-catalyst technology description rewritten for clarity.
+    - Locale: soil-crystal-catalyst-abundant technology description rewritten for clarity.
+    - Locale: treez-soil-enrichment technology description grammar fix (Add → Adds).
+    - Locale: treez-rain-seed-enabled setting name changed to "Rains drop seeds".
+    - Locale: treez-tree-growth-enrich-soil setting name changed to "Growing trees enrich soil".
+    - Locale: Removed orphaned treez-forest-management technology name and description
+      strings left over from a removed technology.
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+Version: 1.16.31
+Date: 2026-06-26
+  Bugfixes:
+    - Fixed "invalid order function for sorting" error in smart_upgrade_tile when white
+      nitrates fired. The sort comparator used math.random() < 0.5 as a tiebreaker, which
+      violates Lua's strict weak ordering requirement (the same pair must always compare
+      the same way). Removed random from the comparator; ties are now broken by picking
+      randomly from the collected tied list after sorting, which is correct.
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+Version: 1.16.30
+Date: 2026-06-26
+  Bugfixes:
+    - Fixed syntax error in smart_upgrade_tile: Lua disallows a goto label as the
+      last statement inside a for-loop body. Replaced goto/label pattern with nested
+      if-blocks; behaviour is identical.
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+Version: 1.16.29
+Date: 2026-06-26
+  Features:
+    - Added Primitive Nitrate Pellets (black): a new hand-craftable pellet unlocked by the
+      Primitive Nitrates technology. Recipe requires 2 wood, 1 stone, and 1 coal — no assembler
+      needed. Yields 1 pellet per craft.
+    - Primitive pellets use their own dedicated entity (soil-crystal-black-site) and art so the
+      firing logic can correctly restrict their behaviour.
+    - Primitive pellets use the new border-aware upgrade algorithm with a fixed search radius
+      of 1, upgrading only the most-surrounded low-quality tile immediately adjacent to the
+      pellet rather than the tile directly beneath it.
+    - Primitive pellets are excluded from: catalyst spawning (maybe_spawn_colored), rain
+      placement (Restorative Rains), and Enduring Nitrates re-queuing. They always consume
+      themselves after firing.
+    - Normal (white) and colored (catalyst) pellets now also use the border-aware smart upgrade
+      algorithm with configurable radius (default 8), replacing the old direct upgrade_tile call.
+      The new algorithm expands search radius from 1 outward, selects the lowest-quality border
+      tile with the most higher-quality neighbours, and falls back to the pellet tile only when
+      no border is found within the maximum radius.
+  Changes:
+    - The old soil-crystal-primitive recipe (assembler-2, 120s, fluid-requiring) is removed.
+      The Primitive Nitrates technology now unlocks the soil-crystal-black hand-craft recipe.
+---------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+Version: 1.16.28
+Date: 2026-06-14
+  Bugfixes:
+    - Queued tree seeds whose marker was deleted without raising a mined event (e.g. removed by a
+      blueprint mod through a script destroy) are no longer grown into phantom trees. Previously
+      the waiting-seed growth queue was only cleaned when a marker was hand-mined or
+      bot-deconstructed; a script-based deletion left the queue entry behind, so the seed kept
+      growing even though it had been removed. (Actively-growing trees were already dropped when
+      their growth-stage entity was destroyed; this gap was specific to parked/waiting seeds.)
+      Two checks now cover it: try_dequeue_tree verifies the waiting marker still exists before
+      growing a queued seed and discards the entry if it is gone, and a per-surface prune at dusk
+      clears any parked waiting-seed entries whose marker has disappeared (useful when the
+      active-tree cap is full so the stale entries are never otherwise drawn).
+---------------------------------------------------------------------------------------------------
+Version: 1.16.27
+Date: 2026-06-14
+  Changes:
+    - The seed-ghost collision sweep now runs on every surface, not just the first one, so tree
+      seeds placed with the seeder tool on other surfaces are also protected. Each surface is
+      tracked independently and sweeps at its own day->night transition (dusk), so surfaces with
+      different day lengths each fire once per cycle. Space platforms are skipped. Note: surfaces
+      with no real day/night cycle (e.g. always-day surfaces) never reach dusk and so are not
+      swept; mention it if you want a fixed-interval fallback added for those.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.26
+Date: 2026-06-14
+  Bugfixes:
+    - Colored Nitrate Pellets can now be removed by construction robots. The entity had no
+      minable result (no paired item), which makes bot deconstruction unreliable in the engine.
+      It now returns a regular white Nitrate Pellet (soil-crystal) when mined or deconstructed.
+      Hand-mining while trample mode is on still yields nothing, as before.
+    - Fixed colored pellets never actually running their Nitrate Catalyst behavior. They were
+      enqueued through a stale three-argument call that left the internal "colored" flag false,
+      so the catalyst path (extra tile upgrades, adjacent-tile upgrades, chain trigger, and
+      pollution-neutrality) never executed and colored pellets were wrongly eligible for the
+      Enduring Nitrates re-queue. They are now correctly flagged colored.
+  Changes:
+    - A Nitrate Catalyst now only chain-triggers nearby WHITE pellets; it no longer counts other
+      colored pellets as chain targets. When no white pellet is in reach, the catalyst simply
+      performs its own tile upgrade and is consumed, as before.
+  Features:
+    - Added a once-per-day/night seed-ghost collision sweep (runs at dusk). If another mod has
+      placed a tree on the tile a tree-seed-site ghost is waiting on, construction robots can
+      never fulfil that ghost and keep retrying. The sweep cancels any tree-seed ghost that has
+      become unfulfillable because a foreign tree/plant now blocks the tile (the planting is
+      lost). A ghost is only cancelled when a tree/plant overlaps its tile AND the seed-site can
+      no longer be placed there, so still-buildable ghosts and ghosts blocked by non-tree causes
+      are left untouched.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.25
+Date: 2026-06-13
+  Optimizations:
+    - process_crystals no longer walks the whole nitrate queue when nothing is due. A lower
+      bound on every queued pellet's fire time is tracked as pellets are enqueued, so the nightly
+      pass returns immediately while a freshly-placed backlog is still waiting out its delay,
+      instead of scanning tens of thousands of not-yet-due entries every cycle.
+    - The Nitrate Catalyst chain trigger no longer rescans the entire queue for every catalyst
+      that fires. It now looks up nearby pellets through the engine's spatial index and maps them
+      back to queue entries via a per-call index built once and shared by all catalysts firing
+      that tick, so the cost scales with the number of nearby pellets rather than queue size.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.24
+Date: 2026-06-13
+  Changes:
+    - Nitrate Catalyst Reactions now scales the chain reach as well as the trigger count. Each
+      level extends both together: radius 1 / 1 pellet with no levels, up to radius 4 / 4 pellets
+      at level 3 (previously the radius was a fixed 8 tiles and only the count scaled). The
+      neighbour search is now inclusive of the radius, so radius 1 reaches orthogonally-adjacent
+      pellets.
+  Bugfixes:
+    - Fixed the Nitrate Catalyst Reactions research description showing a missing-locale-key error
+      in-game: the description was keyed 'soil-crystal-reactions' but the technology resolves to
+      'soil-crystal-catalyst-reactions' (Factorio strips the trailing level number).
+---------------------------------------------------------------------------------------------------
+Version: 1.16.23
+Date: 2026-06-12
+  Optimizations:
+    - try_dequeue_tree now uses a swap-remove instead of table.remove at a random index when
+      pulling a waiting seed into the active growth set. table.remove shifts every element after
+      the removed index (O(n)); swap-remove moves the last element into the freed slot and drops
+      the tail (O(1)). Order is irrelevant because the draw is random, so behaviour is unchanged.
+      Removes the backlog-size cost previously paid on every tree completion.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.22
+Date: 2026-06-12
+  Optimizations:
+    - process_crystals now returns early when 'Pellets work at night only' is on and it is
+      currently daytime, instead of scanning the whole pellet queue every 60 ticks only to skip
+      every entry. Eliminates the daytime queue walk for night-only configurations.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.21
+Date: 2026-06-12
+  Optimizations:
+    - Pellet pollution is now emitted on its own coarser cadence (every 600 ticks instead of
+      every 60), so the pellet queue is walked one tenth as often for pollution. The per-pellet
+      amount scales with the new interval, so total pollution per minute is unchanged. This was
+      the main cost when a large queue had built up after a rainstorm.
+  Features:
+    - Added pellet overflow draining. When the queue exceeds the new 'Pellet overflow threshold'
+      setting (default 2000), the processor drains a percentage of the queue per night (new
+      'Pellet overflow drain' setting, default 40%) instead of the fixed batch size, so large
+      backlogs clear in a few nights rather than dozens. The drain tapers automatically as the
+      queue shrinks, and the fixed batch size is always honoured as a floor. Set the threshold to
+      0 to disable. Both settings are runtime-global and can be changed mid-game.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.20
+Date: 2026-06-12
+  Bugfixes:
+    - Extended the 1.16.19 ghost-deletion fix to the three other placement paths that build a
+      real entity after a ghost check: seed-site maturation (handle_site), the growth-queue
+      processor, and Cloud Seeding (plant_seed_at). All three used a centre-based position+radius
+      ghost check that could miss a multi-tile building ghost covering the target tile but centred
+      more than half a tile away; the real tree/plant was then built over that ghost and the engine
+      deleted it. Each now checks the full tile footprint (an area search) instead. The Crystal
+      Placer area tool was reviewed and intentionally left unchanged: it places a ghost (not a real
+      entity), so it cannot delete an overlapping ghost.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.19
+Date: 2026-06-12
+  Bugfixes:
+    - Restorative Rains no longer deletes player ghosts when placing nitrate pellets. The
+      placement guard detected ghosts with a centre-based position+radius search, which only
+      matches ghosts whose centre lies within the radius. A multi-tile building ghost covering
+      the target tile but centred elsewhere slipped through, the pellet was then built directly
+      on top of it, and the engine deletes any ghost a real entity is built over. The ghost
+      check now uses the pellet's full tile footprint (an area search), so any ghost overlapping
+      the tile is detected and the pellet is placed elsewhere instead.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.18
+Date: 2026-06-10
+  Changes:
+    - Atmospheric Arbory and Restorative Rains: Space Exploration compatibility. When SE is
+      installed, both techs now require the se-rocket-science-pack technology as a prerequisite
+      and as a research ingredient, gating them behind SE's rocket milestone. When SE is not
+      installed, vanilla space-science-pack is required as both a technology prerequisite and a
+      research ingredient. Restorative Rains previously had no space-tier gate; it now matches
+      Atmospheric Arbory in all configurations.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.16
+Date: 2026-06-06
+  Bugfixes:
+    - Fixed nitrate placer tool placing pellet ghosts on top of existing entity ghosts. The
+      placer tool now explicitly checks for any ghost before placing, matching the guard already
+      present in the Restorative Rains and seed-planting paths.
+  Changes:
+    - Arboreal Aromatics renamed to "Atmospheric Arbory".
+    - Atmospheric Arbory: reworked how the rocket-science gate is expressed for Krastorio 2
+      compatibility. Now uses space-science-pack as a *technology prerequisite* (not a research
+      ingredient). In vanilla this naturally gates behind rocket-silo (since the space-science-pack
+      technology requires it); in Krastorio 2 the space-science-pack technology is the equivalent
+      late-game milestone. Removed space-science-pack from the ingredient list to avoid Krastorio's
+      tier-separation enforcer stripping the lower-tier packs.
+    - Atmospheric Arbory now requires Rocket Science: rocket-silo as a technology prerequisite
+      and space-science-pack as a research ingredient (in addition to existing packs).
+    - Thunderstorms now place twice as many nitrate pellets per cleaned chunk (credits doubled
+      from 1 to 2 per on_rain_pollution_cleaned event).
+    - Cloud Seeding technology description shortened.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.13
+Date: 2026-06-03
+  Changes:
+    - Cloud Seeding now also increases rain seeds per cleaned chunk (requires Arboreal Aromatics).
+      Formula: floor(cloud_seeding_levels / 2) + 1 seeds per chunk.
+      CS 0-1 → 1 seed, CS 2-3 → 2, CS 4-5 → 3, CS 6 → 4.
+    - Arboreal Aromatics now controls rain seed scatter (1 seed per rain-cleaned chunk) instead
+      of Cloud Seeding. Cloud Seeding levels now exclusively boost the simultaneous tree growth
+      cap, decoupling the two systems.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.12
+Date: 2026-06-03
+  Features:
+    - Added "Primitive Nitrates" technology (automation + logistic science). Unlocks a slow,
+      low-yield nitrate pellet recipe (10 wood + 3 stone + 200 water → 1 pellet, 120 s) in
+      assembler-2 (crafting-with-fluid). The main Nitrate Pellets technology (chemical plant
+      recipe) now requires Primitive Nitrates as a prerequisite, enforcing natural progression.
+    - Added "Arboreal Aromatics" technology (Dynamic Rain only). Uses the Restorative Rains
+      art and cost (150 auto + logistic + chemical packs, 60 s). Gates Cloud Seeding 1 so
+      players explore the rain-soil feedback loop before pursuing atmospheric seeding.
+    - Cloud Seeding 1 now requires Arboreal Aromatics in addition to Sapling Growth 1.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.11
+Date: 2026-06-02
+  Bugfixes:
+    - Waiting seed markers (treez-seed-waiting) can now be selected by the
+      deconstruction planner. The "player-creation" flag was re-added; Factorio
+      requires this flag for the deconstruction planner to pick up an entity.
+      The "not-blueprintable" flag already prevents blueprint capture, and the
+      on_player_setup_blueprint handler in control.lua rewrites any stray entries
+      as a belt-and-suspenders guard. The force-build (shift+click) concern that
+      prompted removing the flag in 1.16.10 is minimal in practice: the waiting
+      marker has a very small collision box (0.05 tiles) and rarely blocks builds.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.10
+Date: 2026-05-31
+  Bugfixes:
+    - Force-building (shift+click) over a waiting seed marker (treez-seed-waiting)
+      no longer shows "entity in the way". The "player-creation" flag was removed
+      from that entity; selectability and minability are preserved via
+      selectable_in_game=true and the minable field respectively. The entity is
+      now explicitly flagged "not-blueprintable" since it is a transient queue
+      marker, not something the player should capture in a blueprint.
+    - Force-building (shift+click) over a planted seed site (tree-seed-site) now
+      correctly marks it for deconstruction instead of blocking. tree-seed-site
+      must keep "player-creation" to remain blueprintable (robots need it to plant
+      seeds from blueprints), so the fix is scripted: the on_pre_build handler now
+      calls order_deconstruction on any seed-site at the target position when
+      event.shift_build is true, letting the force-build proceed normally.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.9
+Date: 2026-05-31
+  Bugfixes:
+    - Cloud seeding (plant_seed_at) no longer plants trees on top of fully-built
+      buildings. The root cause was that placement was checked using SITE_NAME
+      (tree-seed-site) as a proxy, whose collision box is intentionally tiny
+      (0.2x0.2 tiles) so seeds can be placed near trees. A large building whose
+      footprint covers a tile but whose centre lies elsewhere would pass that
+      check. Fixed by adding an explicit find_entities_filtered scan for built
+      entities at the target position before the can_place_entity call. The other
+      two planting paths (handle_site, try_dequeue_tree) were not affected because
+      they check placement against the full tree/growth-stage collision box.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.8
+Date: 2026-05-31
+  Changes:
+    - Tree seed fuel fields (fuel_category, fuel_value) are now also set on the
+      base-game fallback item definition in data.lua in addition to the existing
+      patch in data-final-fixes.lua. The data-final-fixes.lua patch is kept so
+      Space Age's tree-seed definition (which lacks fuel fields) also gains them.
+      Values are identical in both places: chemical, 200 kJ.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.7
+Date: 2026-05-31
+  Features:
+    - Tree seeds can now be used as fuel (fuel_category: chemical, 200 kJ — one
+      tenth the fuel value of wood at 2 MJ). Useful as a last-resort fuel source
+      or to dispose of excess seeds. Applied in data-final-fixes so it works
+      whether the tree-seed item comes from the base-game fallback or Space Age.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.6
+Date: 2026-05-31
+  Balancing:
+    - Increased the base concurrent-tree cap for both tracks. Sapling Growth now
+      uses 2^(levels+2) instead of 2^(levels+1), so the floor with no research
+      is 4 (was 2) and the max at level 6 is 256 (was 128). Cloud Seeding now
+      uses 2^(levels+1) instead of 2^(levels-1), so level 1 contributes 4 (was
+      1) and level 6 contributes 128 (was 32). With no research at all the
+      combined cap is therefore 4+0=4 (sapling only) or 4+4=8 (with any Cloud
+      Seeding level 1 researched), up from 2 and 3 respectively.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.5
+Date: 2026-05-31
+  Bugfixes:
+    - Seeds (both directly planted and queued) no longer overwrite pre-placed
+      entity ghosts. Previously, handle_site() had no ghost check, so planting a
+      seed directly on a blueprint ghost would silently clobber it. Additionally,
+      try_dequeue_tree() had no ghost check, so a seed queued before a ghost was
+      placed would overwrite the ghost when it later tried to grow. Both functions
+      now detect any entity-ghost at the target position and abort/requeue
+      respectively. The cloud-seeding path (plant_seed_at) already had this check.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.4
+Date: 2026-05-30
+  Bugfixes:
+    - Tree Seeder shortcut now correctly appears greyed-out (unavailable) until
+      the Tree Seeder technology is researched. Previously technology_to_unlock
+      locked it on new games but existing saves or mid-session loads would show
+      it as active. A new sync_seeder_shortcut() helper now fires on on_init,
+      on_configuration_changed, and on_research_finished to keep the shortcut
+      state in sync with actual research, matching the behaviour of the Pellet
+      Placer shortcut introduced in 1.16.1.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.3
+Date: 2026-05-30
+  Bugfixes:
+    - Blueprint seed ghosts can no longer be placed on natural resource patches.
+      Previously the resource check only fired when a robot fulfilled a ghost, so
+      the ghost itself would appear over ore and sit waiting for a robot. Now the
+      ghost is immediately destroyed and the seed refunded when placed over any
+      resource entity, preventing robots from ever attempting fulfillment there.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.2
+Date: 2026-05-30
+  Bugfixes:
+    - Tree seeds and tree-seed sites can no longer be placed on natural resource
+      patches (coal, iron ore, copper ore, stone, oil, uranium, etc.). Attempting
+      to place on a resource entity now cancels placement, refunds the seed to the
+      player or robot, and shows a "Can't place on natural resources" flying text.
+      Robot placements are silently refunded. The same guard applies to all three
+      placement paths: player, robot, and script-revived entities.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.1
+Date: 2026-05-30
+  Bugfixes:
+    - Pellet Placer shortcut now correctly locks until the Nitrate Pellets (soil-crystal)
+      technology is researched. technology_to_unlock handles new games; a new
+      sync_placer_shortcut() helper also fires on on_research_finished, on_init,
+      and on_configuration_changed so existing saves and mid-session research
+      completion both show the shortcut at the right time.
+---------------------------------------------------------------------------------------------------
+Version: 1.16.0
+Date: 2026-05-30
+  Changes:
+    - Mod description updated: reflects Nitrate Pellets (not Soil Crystals), and
+      lists all major features including Dynamic Rain integration, Sapling Soil
+      Enrichment, Restorative Rains, Enduring Nitrates, and compatibility mods.
+    - Removed colored pellet absorption mechanic (treez-crystal-colored-absorption-rate
+      setting, crystal_colored_absorption_rate local, and its settings change handler).
+      Colored pellets are pollution-neutral — neither emitting nor absorbing. The
+      setting was hidden and the absorb_amount variable was computed but never applied.
+    - rain-cloud-source.png moved from graphics/icons/ to source-art/ so it is
+      retained as a reference image without being shipped as a mod asset.
+    - Removed orphaned rain-started-tracking locale key (polling path was removed
+      in 1.15.90; the key was never cleaned up).
+    - Removed storage.dr_polluted_chunks (legacy polling storage, unused since
+      1.15.90 when the event-driven path replaced polling entirely).
+    - Updated stale comment above emit_crystal_pollution to reflect that colored
+      pellets are pollution-neutral and rare pellets no longer exist.
+---------------------------------------------------------------------------------------------------
+Version: 1.15.x
+Date: 2026-05-09 through 2026-05-30
+  Features:
+    - Tree seeds grow through animated growth stages (200 steps, fast/smooth speed options).
+      Active growth cap starts at 2 and doubles with each Sapling Growth research level (max 128).
+      Queued seeds show an acorn marker and start growing automatically as slots open.
+    - Seeds and growing trees respect biome: Alien Biomes species are matched by sampling
+      nearby trees. Cleared land falls back to the tile's native species list.
+    - Tree growth delayed by pollution: chunks with more pollution cause longer delays between
+      growth stages. Trees in growth also have a chance to upgrade the tile beneath them.
+    - Sapling Soil Enrichment (6 levels): each growth stage has a cumulative chance to upgrade
+      the tile under the sapling, using distance-weighted random selection to produce organic halos.
+    - Nitrate Pellets (formerly Soil Crystals): craftable items that upgrade degraded terrain one
+      step per firing, active at night after a configurable delay. Work on vanilla and Alien Biomes
+      tiles. Cannot be placed on hard surfaces or rails.
+    - Colored pellet variant: fires as a chain catalyst, advancing nearby normal pellets.
+      Catalyst research chain unlocks probability, abundance, and reaction strength upgrades.
+    - Pellet Placer and Tree Seeder area tools: drag a selection to queue robot ghost placement
+      at a chosen density. Robots fulfill from the logistic network automatically.
+    - Enduring Nitrates (3 levels): cumulative 10%/20%/30% chance a normal pellet survives
+      firing and re-queues for the next night.
+    - Cloud Seeding (6 levels, requires Dynamic Rain): seeds are automatically scattered in
+      any chunk where rain removes all pollution. One seed per level per cleaned chunk.
+    - Restorative Rains (requires Dynamic Rain): while it rains, nitrate pellets accumulate
+      in pollution-cleaned chunks and fire the coming night. Toggle in mod settings post-research.
+    - Dynamic Rain: trees grow faster in rain (halved stage delay). Both features gate off
+      Cloud Seeding / Restorative Rains research respectively.
+    - Winter Is Coming compatibility: tile changes raise set_tiles events so WIC updates its
+      warm-tile snapshot correctly.
+    - Blueprint Shotgun / script-placement compatibility: script_raised_revive and
+      script_raised_built are handled identically to player and robot placement.
+    - Space Exploration compatibility: seeds and pellets blocked on scaffold/asteroid surfaces.
+    - Pellet trample: players walking over pellets destroy them (configurable radius). Biters
+      attacking a pellet destroy it instantly. Robots unaffected.
+    - Randomise upgrade paths (off by default): pellets pick a random destination tile from
+      the same colour/base-type group rather than following a strict linear chain.
+    - Pellet pollution emission: placed pellets emit a small, configurable amount of pollution
+      while queued. Colored pellets are pollution-neutral.
+    - Research gates: Seeds tech auto-completes after cutting 10 trees; Tree Seeder requires
+      Seeds; Forest Management auto-completes after planting 1000 seeds.
+  Bugfixes:
+    - Rare nitrate crystal mechanic removed entirely (simplified to colored/normal only).
+    - Seeds and pellets can no longer overlap each other at placement.
+    - Seeds blocked on ore patches (resource entities) in rain/cloud seeding paths.
+    - Acorn markers correctly cleaned up in all edge cases via spatial search at placement.
+    - Growth stage sprites use a square-root curve with a 5% floor so saplings are visible.
+    - Various crash fixes for Space Age icon validation, load-order issues, and stale
+      storage values across mod updates and save migrations.
+---------------------------------------------------------------------------------------------------
