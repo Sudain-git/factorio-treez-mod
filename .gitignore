@@ -1,6 +1,9 @@
 # Compiled/packaged mod files
 *.zip
 
+# Claude Code local settings
+.claude/
+
 # OS files
 .DS_Store
 Thumbs.db
